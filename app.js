@@ -29,14 +29,35 @@ function initSupabase(){
 async function loadAll(){
   if(!sb) return;
   showToast('Veriler çekiliyor...');
-  const [p,a,d] = await Promise.all([
-    sb.from('avans_personel').select('*').order('name'),
-    sb.from('avans_kayitlari').select('*').order('advance_date', { ascending:true }),
-    sb.from('avans_kesintileri').select('*').order('created_at', { ascending:true })
-  ]);
-  if(p.error || a.error || d.error){ console.error(p.error||a.error||d.error); showToast('Supabase okuma hatası. SQL ve bağlantıyı kontrol et.'); return; }
-  state.people = p.data || []; state.advances = a.data || []; state.deductions = d.data || [];
-  renderAll(); showToast('Veriler güncellendi.');
+
+  const p = await sb.from('avans_personel').select('*').order('name', { ascending:true });
+  if(p.error){
+    console.error('avans_personel okuma hatası:', p.error);
+    showToast('Personel listesi okunamadı: ' + (p.error.message || 'policy/SQL hatası'));
+    return;
+  }
+  state.people = p.data || [];
+
+  const a = await sb.from('avans_kayitlari').select('*').order('advance_date', { ascending:true });
+  if(a.error){
+    console.error('avans_kayitlari okuma hatası:', a.error);
+    showToast('Avans kayıtları okunamadı: ' + (a.error.message || 'policy/SQL hatası'));
+    state.advances = [];
+  } else {
+    state.advances = a.data || [];
+  }
+
+  const d = await sb.from('avans_kesintileri').select('*').order('created_at', { ascending:true });
+  if(d.error){
+    console.error('avans_kesintileri okuma hatası:', d.error);
+    showToast('Kesinti kayıtları okunamadı: ' + (d.error.message || 'policy/SQL hatası'));
+    state.deductions = [];
+  } else {
+    state.deductions = d.data || [];
+  }
+
+  renderAll();
+  showToast(`${state.people.length} personel yüklendi.`);
 }
 function fillPersonSelects(){
   ['advancePerson','historyPerson','salaryPerson'].forEach(id=>{
@@ -46,14 +67,7 @@ function fillPersonSelects(){
     if(state.people.some(p=>p.id===old)) el.value=old;
   });
 }
-function summaryHTML(items){
-  return items.map(([label,value,type]) =>
-    `<div class="summary ${type||''}">
-      <span>${label}</span>
-      <b>${type === 'count' ? value : money.format(value||0)}</b>
-    </div>`
-  ).join('');
-}
+function summaryHTML(items){ return items.map(([label,value,type])=>`<div class="summary ${type||''}"><span>${label}</span><b>${type==='count' ? (value||0) : money.format(value||0)}</b></div>`).join(''); }
 function renderGlobalSummary(){
   const total = state.advances.reduce((s,a)=>s+Number(a.amount||0),0);
   const paid = state.deductions.reduce((s,d)=>s+Number(d.amount||0),0);
@@ -110,9 +124,14 @@ async function savePerson(){
   const name=$('personName').value.trim(), salary=parseNum($('personSalary').value), editId=$('personName').dataset.editId;
   if(!name) return showToast('Personel adı gir knk.');
   const data={ name, salary };
-  const res = editId ? await sb.from('avans_personel').update(data).eq('id',editId) : await sb.from('avans_personel').insert(data);
-  if(res.error){ console.error(res.error); return showToast('Personel kaydedilemedi.'); }
-  $('personName').value=''; $('personSalary').value=''; delete $('personName').dataset.editId; await loadAll(); showToast('Personel kaydedildi.');
+  const res = editId
+    ? await sb.from('avans_personel').update(data).eq('id',editId).select().single()
+    : await sb.from('avans_personel').insert(data).select().single();
+  if(res.error){ console.error('Personel kayıt hatası:', res.error); return showToast('Personel kaydedilemedi: ' + (res.error.message || '')); }
+  $('personName').value=''; $('personSalary').value=''; delete $('personName').dataset.editId;
+  await loadAll();
+  document.querySelector('[data-tab="tabPeople"]').click();
+  showToast('Personel kaydedildi ve liste yenilendi.');
 }
 async function deletePerson(id){
   if(state.advances.some(a=>a.person_id===id)) return showToast('Bu personelde avans kaydı var, silinmedi.');
