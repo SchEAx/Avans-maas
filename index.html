@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#101827" />
+  <title>Garage İstanbul | Avans Takip</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Garage İstanbul</p>
+        <h1>Avans Takip</h1>
+        <span id="todayText"></span>
+      </div>
+      <button id="syncBtn" class="ghost">Yenile</button>
+    </header>
+
+    <section id="setupCard" class="card setup-card hidden">
+      <h2>Supabase bağlantısı</h2>
+      <p>İlk kurulumda aşağıya Supabase Project URL ve anon public key gir. Bu bilgiler cihazda saklanır.</p>
+      <label>Supabase URL<input id="sbUrl" placeholder="https://xxxx.supabase.co"></label>
+      <label>Anon Public Key<textarea id="sbKey" rows="3" placeholder="eyJ... "></textarea></label>
+      <div class="actions"><button id="saveConfigBtn">Bağlantıyı Kaydet</button><button id="clearConfigBtn" class="danger ghost">Temizle</button></div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="tabAdvance">Avans Girişi</button>
+      <button class="tab-btn" data-tab="tabHistory">Aylık Geçmiş</button>
+      <button class="tab-btn" data-tab="tabSalary">Maaş Kesinti</button>
+      <button class="tab-btn" data-tab="tabPeople">Personel</button>
+    </nav>
+
+    <main>
+      <section id="tabAdvance" class="tab-panel active">
+        <div class="grid two">
+          <div class="card">
+            <h2>Yeni avans kaydı</h2>
+            <label>Personel<select id="advancePerson"></select></label>
+            <label>Avans miktarı<input id="advanceAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="10000"></label>
+            <label>Açıklama<input id="advanceNote" placeholder="Örn: nakit avans"></label>
+            <label>Tarih<input id="advanceDate" type="date"></label>
+            <button id="saveAdvanceBtn">Avansı Kaydet</button>
+          </div>
+          <div class="card soft">
+            <h2>Özet</h2>
+            <div id="globalSummary" class="summary-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tabHistory" class="tab-panel">
+        <div class="card">
+          <div class="toolbar">
+            <label>Personel<select id="historyPerson"></select></label>
+            <label>Ay<input id="historyMonth" type="month"></label>
+          </div>
+          <div id="historySummary" class="summary-grid"></div>
+          <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Açıklama</th><th>Avans</th><th>Kesilen</th><th>Kalan</th><th>Durum</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="tabSalary" class="tab-panel">
+        <div class="card">
+          <div class="toolbar">
+            <label>Personel<select id="salaryPerson"></select></label>
+            <label>Ay<input id="salaryMonth" type="month"></label>
+          </div>
+          <div id="salaryCards" class="summary-grid"></div>
+          <p class="hint">Bu ekranda açık avanslardan o ay kesilecek tutarı seç. Kısmi kesinti yaparsan kalan otomatik sonraki aya devreder.</p>
+          <div class="table-wrap"><table><thead><tr><th>Seç</th><th>Tarih</th><th>Açıklama</th><th>Avans</th><th>Kalan</th><th>Bu Ay Kesilecek</th></tr></thead><tbody id="deductionBody"></tbody></table></div>
+          <button id="applyDeductionBtn">Kesintileri Kaydet</button>
+        </div>
+      </section>
+
+      <section id="tabPeople" class="tab-panel">
+        <div class="grid two">
+          <div class="card">
+            <h2>Personel ekle / düzenle</h2>
+            <label>Personel adı<input id="personName" placeholder="Ad Soyad"></label>
+            <label>Maaş<input id="personSalary" type="number" min="0" step="0.01" inputmode="decimal" placeholder="30000"></label>
+            <button id="savePersonBtn">Personeli Kaydet</button>
+          </div>
+          <div class="card">
+            <h2>Personeller</h2>
+            <div id="personList" class="mini-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
